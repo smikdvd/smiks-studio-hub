@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  company   String?
+  position  String?
+  status    String   @default("lead")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deals     Deal[]
+  tasks     Task[]
+}
+
+model Deal {
+  id         Int      @id @default(autoincrement())
+  title      String
+  value      Float    @default(0)
+  stage      String   @default("new")
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  customerId  Int?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model InventoryItem {
+  id          String   @id @default(cuid())
+  name        String
+  brand       String?
+  category    String   @default("Other")
+  qty         Int      @default(1)
+  dateBought  String?
+  priceBought Float    @default(0)
+  dateSold    String?
+  priceSold   Float    @default(0)
+  status      String   @default("In Stock")
+  condition   String   @default("New")
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StudioSession {
+  id         Int      @id @default(autoincrement())
+  client     String
+  type       String   @default("Recording Session")
+  date       String?
+  hours      Float    @default(0)
+  rate       Float    @default(0)
+  discount   Float    @default(0)
+  netRevenue Float    @default(0)
+  payStatus  String   @default("Pending")
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  desc      String
+  category  String   @default("Miscellaneous")
+  amount    Float    @default(0)
+  date      String?
+  vendor    String?
+  payMethod String   @default("Cash")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

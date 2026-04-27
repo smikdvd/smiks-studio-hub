@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bunx prisma *)",
+      "Bash(bun run *)",
+      "Bash(npm --version)",
+      "Bash(bun --version)",
+      "Bash(winget --version)",
+      "Bash(bun install *)",
+      "PowerShell(winget install --id GitHub.cli --silent --accept-source-agreements --accept-package-agreements 2>&1)",
+      "Bash(vercel --version)",
+      "PowerShell(refreshenv 2>&1)",
+      "PowerShell(gh --version 2>&1)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"Path\",\"User\"\\); gh --version 2>&1)"
+    ]
+  }
+}
