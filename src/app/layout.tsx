@@ -16,39 +16,31 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col">
         <header style={{
-          background: "var(--navy-900)",
-          borderBottom: "1px solid var(--border-strong)",
+          background: "var(--canvas)",
+          borderBottom: "1px solid var(--border)",
           padding: "0 2rem",
           position: "sticky", top: 0, zIndex: 100,
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          height: "64px",
-          boxShadow: "0 2px 24px rgba(0,0,0,0.5)",
+          height: "56px",
         }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "14px", textDecoration: "none" }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none", flexShrink: 0 }}>
             <div style={{
-              width: "40px", height: "40px",
-              background: "linear-gradient(135deg, var(--gold), var(--gold-dark))",
-              borderRadius: "10px",
+              width: "26px", height: "26px",
+              background: "var(--gold)",
+              borderRadius: "6px",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "1.2rem",
-              boxShadow: "0 2px 12px rgba(212,168,67,0.4)",
-              flexShrink: 0,
+              fontSize: "0.8rem",
             }}>🎙️</div>
-            <div>
-              <div style={{
-                fontFamily: "'Montserrat', sans-serif",
-                fontSize: "0.95rem", fontWeight: 900,
-                color: "var(--cream)", letterSpacing: "0.04em",
-                textTransform: "uppercase", lineHeight: 1,
-              }}>Smiks&apos; Studio Hub</div>
-              <div style={{
-                fontSize: "0.55rem", color: "var(--gold)",
-                letterSpacing: "0.15em", textTransform: "uppercase",
-                marginTop: "2px", fontWeight: 600,
-              }}>Amplify Your Dreams</div>
-            </div>
+            <span style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              color: "var(--text)",
+              letterSpacing: "-0.01em",
+            }}>Smiks&apos; Studio Hub</span>
           </Link>
-          <nav style={{ display: "flex", gap: "3px" }}>
+
+          <nav style={{ display: "flex", gap: "2px" }}>
             <Link href="/" className="nav-link">Dashboard</Link>
             <Link href="/customers" className="nav-link">Customers</Link>
             <Link href="/deals" className="nav-link">Deals</Link>
@@ -58,7 +50,16 @@ export default function RootLayout({
             <Link href="/expenses" className="nav-link">Expenses</Link>
           </nav>
         </header>
-        <main style={{ flex: 1, padding: "2rem", maxWidth: "1600px", margin: "0 auto", width: "100%", position: "relative", zIndex: 1 }}>
+
+        <main style={{
+          flex: 1,
+          padding: "2rem",
+          maxWidth: "1440px",
+          margin: "0 auto",
+          width: "100%",
+          position: "relative",
+          zIndex: 1,
+        }}>
           {children}
         </main>
       </body>
