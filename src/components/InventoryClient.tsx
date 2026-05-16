@@ -2,6 +2,15 @@
 
 import { useState, useMemo } from "react";
 
+interface InventorySale {
+  id: string;
+  qtySold: number;
+  priceSold: number;
+  dateSold: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
 interface InventoryItem {
   id: string;
   name: string;
@@ -10,15 +19,18 @@ interface InventoryItem {
   qty: number;
   dateBought: string | null;
   priceBought: number;
-  dateSold: string | null;
+  shippingCost: number;
   priceSold: number;
   status: string;
   condition: string;
   notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sales: InventorySale[];
 }
 
 const CATEGORIES = ["Recording", "Podcast", "Livestreaming", "Mixing & Mastering", "Accessories", "Cables & Connectors", "Other"];
-const STATUSES = ["In Stock", "Sold", "Reserved", "Repair", "Cancelled", "Returned", "Written Off"];
+const STATUSES = ["In Stock", "In Transit", "Sold", "Reserved", "Repair", "Cancelled", "Returned", "Written Off"];
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"];
 
 const CAT_COLORS: Record<string, string> = {
@@ -33,6 +45,7 @@ const CAT_COLORS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   "In Stock": "#34d399",
+  "In Transit": "#e8c070",
   "Sold": "#60a5fa",
   "Cancelled": "#f87171",
   "Returned": "#fb923c",
@@ -49,34 +62,38 @@ function fmtDate(s: string | null) {
 
 function fmtMoney(v: number) {
   if (!v) return "—";
-  return "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "USh " + Number(v).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function CatChip({ cat }: { cat: string }) {
   const c = CAT_COLORS[cat] || "#94a3b8";
-  return (
-    <span className="chip" style={{ background: c + "18", color: c, borderColor: c + "40" }}>
-      {cat}
-    </span>
-  );
+  return <span className="chip" style={{ background: c + "18", color: c, borderColor: c + "40" }}>{cat}</span>;
 }
 
 function StatusChip({ status }: { status: string }) {
   const c = STATUS_COLORS[status] || "#94a3b8";
-  return (
-    <span className="chip" style={{ background: c + "18", color: c, borderColor: c + "40" }}>
-      {status}
-    </span>
-  );
+  return <span className="chip" style={{ background: c + "18", color: c, borderColor: c + "40" }}>{status}</span>;
+}
+
+function getAvailable(item: InventoryItem) {
+  const totalSold = item.sales.reduce((s, sale) => s + sale.qtySold, 0);
+  return item.qty - totalSold;
 }
 
 const EMPTY_FORM = {
   name: "", brand: "", category: "Recording", qty: 1,
-  dateBought: "", priceBought: "", dateSold: "", priceSold: "",
+  dateBought: "", priceBought: "", shippingCost: "", priceSold: "",
   status: "In Stock", condition: "New", notes: "",
 };
 
+const EMPTY_SALE = { qtySold: "1", priceSold: "", dateSold: new Date().toISOString().split("T")[0], notes: "" };
+
 const PAGE_SIZE = 25;
+
+const labelStyle: React.CSSProperties = {
+  fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em",
+  textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6,
+};
 
 export default function InventoryClient({ items: initial }: { items: InventoryItem[] }) {
   const [items, setItems] = useState(initial);
@@ -89,6 +106,12 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
 
+  // Sale recording state
+  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [saleForm, setSaleForm] = useState({ ...EMPTY_SALE });
+  const [saleLoading, setSaleLoading] = useState(false);
+  const [saleError, setSaleError] = useState("");
+
   function showToast(msg: string) {
     setToast(msg);
     setToastVisible(true);
@@ -98,7 +121,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const filtered = useMemo(() => {
     return items.filter(i => {
       const q = search.toLowerCase();
-      const matchQ = !q || i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q);
+      const matchQ = !q || i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
       const matchCat = !activeCat || i.category === activeCat;
       const matchSt = !statusFilter || i.status === statusFilter;
       return matchQ && matchCat && matchSt;
@@ -111,6 +134,9 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   function openAdd() {
     setForm({ ...EMPTY_FORM });
     setModal("new");
+    setShowSaleForm(false);
+    setSaleForm({ ...EMPTY_SALE });
+    setSaleError("");
   }
 
   function openEdit(item: InventoryItem) {
@@ -121,12 +147,15 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       qty: item.qty,
       dateBought: item.dateBought || "",
       priceBought: String(item.priceBought || ""),
-      dateSold: item.dateSold || "",
+      shippingCost: String(item.shippingCost || ""),
       priceSold: String(item.priceSold || ""),
       status: item.status,
       condition: item.condition,
       notes: item.notes || "",
     });
+    setSaleForm({ ...EMPTY_SALE, priceSold: String(item.priceSold || "") });
+    setShowSaleForm(false);
+    setSaleError("");
     setModal(item);
   }
 
@@ -139,7 +168,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       qty: Number(form.qty) || 1,
       dateBought: form.dateBought || null,
       priceBought: parseFloat(String(form.priceBought)) || 0,
-      dateSold: form.dateSold || null,
+      shippingCost: parseFloat(String(form.shippingCost)) || 0,
       priceSold: parseFloat(String(form.priceSold)) || 0,
       status: form.status,
       condition: form.condition,
@@ -155,15 +184,80 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       setItems(prev => [created, ...prev]);
       showToast("Item added!");
     } else if (modal && typeof modal === "object") {
-      await fetch(`/api/inventory/${modal.id}`, {
+      const res = await fetch(`/api/inventory/${modal.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      setItems(prev => prev.map(i => i.id === modal.id ? { ...i, ...payload } : i));
+      const updated = await res.json();
+      setItems(prev => prev.map(i => i.id === modal.id ? updated : i));
       showToast("Item updated!");
     }
     setModal(null);
+  }
+
+  async function recordSale() {
+    if (!modal || modal === "new" || typeof modal !== "object") return;
+    const qty = parseInt(saleForm.qtySold) || 0;
+    const price = parseFloat(saleForm.priceSold) || 0;
+    if (qty < 1) { setSaleError("Quantity must be at least 1"); return; }
+    if (price <= 0) { setSaleError("Sale price is required"); return; }
+
+    setSaleLoading(true);
+    setSaleError("");
+    const res = await fetch(`/api/inventory/${modal.id}/sales`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ qtySold: qty, priceSold: price, dateSold: saleForm.dateSold || null, notes: saleForm.notes || null }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      setSaleError(err.error || "Failed to record sale");
+      setSaleLoading(false);
+      return;
+    }
+    const newSale: InventorySale = await res.json();
+    // Update local state: add sale to item, recalculate available, update status
+    setItems(prev => prev.map(i => {
+      if (i.id !== modal.id) return i;
+      const updatedSales = [...i.sales, newSale];
+      const totalSold = updatedSales.reduce((s, sale) => s + sale.qtySold, 0);
+      const available = i.qty - totalSold;
+      return { ...i, sales: updatedSales, status: available === 0 ? "Sold" : "In Stock" };
+    }));
+    // Also update the modal's item ref
+    setModal(prev => {
+      if (!prev || prev === "new" || typeof prev !== "object") return prev;
+      const updatedSales = [...prev.sales, newSale];
+      const totalSold = updatedSales.reduce((s, sale) => s + sale.qtySold, 0);
+      const available = prev.qty - totalSold;
+      return { ...prev, sales: updatedSales, status: available === 0 ? "Sold" : "In Stock" };
+    });
+    setSaleForm({ ...EMPTY_SALE, priceSold: saleForm.priceSold });
+    setShowSaleForm(false);
+    showToast("Sale recorded!");
+    setSaleLoading(false);
+  }
+
+  async function deleteSale(saleId: string) {
+    if (!modal || modal === "new" || typeof modal !== "object") return;
+    if (!confirm("Remove this sale record?")) return;
+    await fetch(`/api/inventory/${modal.id}/sales/${saleId}`, { method: "DELETE" });
+    setItems(prev => prev.map(i => {
+      if (i.id !== modal.id) return i;
+      const updatedSales = i.sales.filter(s => s.id !== saleId);
+      const totalSold = updatedSales.reduce((s, sale) => s + sale.qtySold, 0);
+      const available = i.qty - totalSold;
+      return { ...i, sales: updatedSales, status: available === 0 ? "Sold" : "In Stock" };
+    }));
+    setModal(prev => {
+      if (!prev || prev === "new" || typeof prev !== "object") return prev;
+      const updatedSales = prev.sales.filter(s => s.id !== saleId);
+      const totalSold = updatedSales.reduce((s, sale) => s + sale.qtySold, 0);
+      const available = prev.qty - totalSold;
+      return { ...prev, sales: updatedSales, status: available === 0 ? "Sold" : "In Stock" };
+    });
+    showToast("Sale removed");
   }
 
   async function deleteItem() {
@@ -177,6 +271,13 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
 
   const f = (key: keyof typeof EMPTY_FORM) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value }));
+
+  const sf = (key: keyof typeof EMPTY_SALE) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setSaleForm(prev => ({ ...prev, [key]: e.target.value }));
+
+  const currentItem = modal && modal !== "new" && typeof modal === "object" ? modal : null;
+  const available = currentItem ? getAvailable(currentItem) : 0;
+  const totalSoldQty = currentItem ? currentItem.sales.reduce((s, sale) => s + sale.qtySold, 0) : 0;
 
   return (
     <div>
@@ -207,9 +308,9 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       </div>
 
       {/* Table */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 150px 60px 110px 110px 110px", padding: "11px 18px", borderBottom: "1px solid var(--border-strong)", background: "var(--navy-800)" }}>
-          {["Item", "Category", "Qty", "Date Bought", "Price", "Status"].map(h => (
+      <div className="table-scroll" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-sm)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "11px 18px", borderBottom: "1px solid var(--border-strong)", background: "var(--navy-800)" }}>
+          {["ID", "Item", "Category", "Stock", "Date Bought", "Price", "Status"].map(h => (
             <div key={h} style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)" }}>{h}</div>
           ))}
         </div>
@@ -218,21 +319,39 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
             <div style={{ textAlign: "center", padding: "4rem 2rem", color: "var(--text-muted)", fontSize: "0.88rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
               No items found
             </div>
-          ) : pageItems.map(item => (
-            <div key={item.id} onClick={() => openEdit(item)} style={{ display: "grid", gridTemplateColumns: "1fr 150px 60px 110px 110px 110px", padding: "12px 18px", borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "background 0.15s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "")}>
-              <div>
-                <div style={{ fontWeight: 700, color: "var(--cream)", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
-                {item.brand && <div style={{ fontSize: "0.67rem", color: "var(--text-muted)", fontWeight: 500 }}>{item.brand}</div>}
+          ) : pageItems.map(item => {
+            const avail = getAvailable(item);
+            const soldQty = item.sales.reduce((s, sale) => s + sale.qtySold, 0);
+            const partial = soldQty > 0 && avail > 0;
+            const illegible = item.notes?.includes("⚠️ ILLEGIBLE") ?? false;
+            return (
+              <div key={item.id} onClick={() => openEdit(item)}
+                style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "12px 18px", borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "background 0.15s", background: illegible ? "rgba(248,113,113,0.07)" : undefined, borderLeft: illegible ? "3px solid #f87171" : "3px solid transparent" }}
+                onMouseEnter={e => (e.currentTarget.style.background = illegible ? "rgba(248,113,113,0.13)" : "var(--surface-2)")}
+                onMouseLeave={e => (e.currentTarget.style.background = illegible ? "rgba(248,113,113,0.07)" : "")}>
+                <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.62rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }} title={item.id}>{item.id.slice(0, 8)}</div>
+                <div>
+                  <div style={{ fontWeight: 700, color: illegible ? "#fca5a5" : "var(--cream)", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {illegible && <span style={{ marginRight: 5, fontSize: "0.7rem" }}>⚠️</span>}{item.name}
+                  </div>
+                  {item.brand && <div style={{ fontSize: "0.67rem", color: "var(--text-muted)", fontWeight: 500 }}>{item.brand}</div>}
+                </div>
+                <div style={{ display: "flex", alignItems: "center" }}><CatChip cat={item.category} /></div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.82rem", fontWeight: 700, color: avail === 0 ? "#f87171" : "var(--cream)" }}>{avail}</span>
+                  {partial && (
+                    <span style={{ fontSize: "0.6rem", color: "var(--gold)", fontWeight: 700 }}>/{item.qty}</span>
+                  )}
+                  {partial && (
+                    <span style={{ fontSize: "0.58rem", color: "var(--text-muted)", fontWeight: 600 }}>({soldQty} sold)</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.68rem", color: "var(--text-2)" }}>{fmtDate(item.dateBought)}</div>
+                <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.78rem", fontWeight: 700, color: "var(--gold-light)" }}>{fmtMoney(item.priceBought)}</div>
+                <div style={{ display: "flex", alignItems: "center" }}><StatusChip status={item.status} /></div>
               </div>
-              <div style={{ display: "flex", alignItems: "center" }}><CatChip cat={item.category} /></div>
-              <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.82rem", fontWeight: 700, color: "var(--cream)" }}>{item.qty}</div>
-              <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.68rem", color: "var(--text-2)" }}>{fmtDate(item.dateBought)}</div>
-              <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.78rem", fontWeight: 700, color: "var(--gold-light)" }}>{fmtMoney(item.priceBought)}</div>
-              <div style={{ display: "flex", alignItems: "center" }}><StatusChip status={item.status} /></div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {/* Pagination */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.9rem 1.25rem", background: "var(--navy-800)", borderTop: "1px solid var(--border-strong)" }}>
@@ -251,81 +370,232 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
 
       {/* Modal */}
       {modal !== null && (
-        <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setModal(null); }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: "1.5rem 1.5rem 1.25rem", borderBottom: "1px solid var(--border-strong)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", background: "var(--navy-900)", borderRadius: "16px 16px 0 0" }}>
               <div>
                 <div style={{ fontSize: "1rem", fontWeight: 800, color: "var(--cream)", textTransform: "uppercase", letterSpacing: "0.02em" }}>
                   {modal === "new" ? "Add New Item" : typeof modal === "object" ? modal.name : ""}
                 </div>
-                {modal !== "new" && typeof modal === "object" && (
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.65rem", color: "var(--gold)", marginTop: 4 }}>{modal.id}</div>
+                {currentItem && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 5 }}>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.65rem", color: "var(--gold)" }}>{currentItem.id}</span>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.72rem", fontWeight: 700, color: available > 0 ? "#34d399" : "#f87171" }}>
+                      {available} available
+                    </span>
+                    {totalSoldQty > 0 && (
+                      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.68rem", color: "var(--text-muted)" }}>
+                        ({totalSoldQty} of {currentItem.qty} sold)
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
               <button onClick={() => setModal(null)} style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.9rem", padding: "6px 10px", borderRadius: 7 }}>✕</button>
             </div>
-            <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+
+            <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "70vh", overflowY: "auto" }}>
+
+              {/* Illegible warning banner */}
+              {currentItem?.notes?.includes("⚠️ ILLEGIBLE") && (
+                <div style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: "0.75rem", color: "#fca5a5", marginBottom: 2 }}>DIFFICULT TO READ</div>
+                    <div style={{ fontSize: "0.72rem", color: "rgba(252,165,165,0.8)", lineHeight: 1.5 }}>This item was flagged as hard to read on the physical receipt. Please verify the details and update as needed.</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Item fields */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Item Name</span>
+                  <span style={labelStyle}>Item Name</span>
                   <input className="input" value={form.name} onChange={f("name")} placeholder="Item name" />
                 </label>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Brand / Model</span>
+                  <span style={labelStyle}>Brand / Model</span>
                   <input className="input" value={form.brand} onChange={f("brand")} placeholder="Brand or model" />
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Category</span>
+                  <span style={labelStyle}>Category</span>
                   <select className="input" value={form.category} onChange={f("category")}>
                     {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </label>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Quantity</span>
+                  <span style={labelStyle}>Total Quantity (purchased)</span>
                   <input className="input" type="number" min="1" value={form.qty} onChange={f("qty")} />
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Date Bought</span>
+                  <span style={labelStyle}>Date Bought</span>
                   <input className="input" type="date" value={form.dateBought} onChange={f("dateBought")} />
                 </label>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Price Bought ($)</span>
-                  <input className="input" type="number" step="0.01" value={form.priceBought} onChange={f("priceBought")} placeholder="0.00" />
+                  <span style={labelStyle}>Cost Price (per unit)</span>
+                  <input className="input" type="number" step="1" value={form.priceBought} onChange={f("priceBought")} placeholder="0" />
+                </label>
+                <label style={{ display: "block" }}>
+                  <span style={labelStyle}>Shipping Cost (total)</span>
+                  <input className="input" type="number" step="1" value={form.shippingCost} onChange={f("shippingCost")} placeholder="0" />
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Date Sold</span>
-                  <input className="input" type="date" value={form.dateSold} onChange={f("dateSold")} />
+                  <span style={labelStyle}>Selling Price (default)</span>
+                  <input className="input" type="number" step="1" value={form.priceSold} onChange={f("priceSold")} placeholder="0" />
                 </label>
                 <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Price Sold ($)</span>
-                  <input className="input" type="number" step="0.01" value={form.priceSold} onChange={f("priceSold")} placeholder="0.00" />
-                </label>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
-                <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Status</span>
-                  <select className="input" value={form.status} onChange={f("status")}>
-                    {STATUSES.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </label>
-                <label style={{ display: "block" }}>
-                  <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Condition</span>
+                  <span style={labelStyle}>Condition</span>
                   <select className="input" value={form.condition} onChange={f("condition")}>
                     {CONDITIONS.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </label>
               </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
+                <label style={{ display: "block" }}>
+                  <span style={labelStyle}>Status</span>
+                  <select className="input" value={form.status} onChange={f("status")}>
+                    {STATUSES.map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+
+              {/* Profit calculator */}
+              {(parseFloat(String(form.priceBought)) > 0 || parseFloat(String(form.priceSold)) > 0) && (() => {
+                const bought = parseFloat(String(form.priceBought)) || 0;
+                const shipping = parseFloat(String(form.shippingCost)) || 0;
+                const sold = parseFloat(String(form.priceSold)) || 0;
+                const qty = Number(form.qty) || 1;
+                const totalCost = bought * qty + shipping;
+                const costPerUnit = totalCost / qty;
+                const profit = sold - costPerUnit;
+                const margin = costPerUnit > 0 ? (profit / costPerUnit) * 100 : 0;
+                const profitColor = profit >= 0 ? "#34d399" : "#f87171";
+                return (
+                  <div style={{ background: "rgba(212,168,67,0.07)", border: "1px solid rgba(212,168,67,0.2)", borderRadius: "var(--radius-sm)", padding: "12px 14px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "0.75rem" }}>
+                    <div>
+                      <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Total Cost</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.82rem", fontWeight: 700, color: "var(--cream)" }}>USh {totalCost.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                    </div>
+                    {shipping > 0 && (
+                      <div>
+                        <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Cost / unit</div>
+                        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.82rem", fontWeight: 700, color: "var(--cream)" }}>USh {Math.round(costPerUnit).toLocaleString("en-US")}</div>
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Profit / unit</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.82rem", fontWeight: 700, color: profitColor }}>{profit >= 0 ? "+" : ""}USh {Math.round(profit).toLocaleString("en-US")}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.58rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>Margin</div>
+                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.82rem", fontWeight: 700, color: profitColor }}>{margin.toFixed(1)}%</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <label style={{ display: "block" }}>
-                <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Notes</span>
+                <span style={labelStyle}>Notes</span>
                 <textarea className="input" rows={2} value={form.notes} onChange={f("notes")} placeholder="Any notes..." style={{ resize: "vertical", minHeight: 60 }} />
               </label>
+
+              {/* ── Sales history (edit mode only) ── */}
+              {currentItem && (
+                <div style={{ borderTop: "1px solid var(--border-strong)", paddingTop: "1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ fontSize: "0.65rem", fontWeight: 800, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                      Sales History ({currentItem.sales.length})
+                    </div>
+                    {available > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => { setShowSaleForm(s => !s); setSaleError(""); }}
+                        className="add-btn"
+                        style={{ padding: "5px 12px", fontSize: "0.68rem" }}
+                      >
+                        {showSaleForm ? "Cancel" : "+ Record Sale"}
+                      </button>
+                    )}
+                    {available === 0 && (
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#f87171" }}>All units sold</span>
+                    )}
+                  </div>
+
+                  {/* Record sale form */}
+                  {showSaleForm && (
+                    <div style={{ background: "rgba(212,168,67,0.06)", border: "1px solid rgba(212,168,67,0.25)", borderRadius: 10, padding: "1rem", marginBottom: 12 }}>
+                      <div style={{ fontSize: "0.65rem", fontWeight: 800, color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+                        Record Sale · {available} unit{available !== 1 ? "s" : ""} available
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem" }}>
+                        <label style={{ display: "block" }}>
+                          <span style={labelStyle}>Qty Sold</span>
+                          <input className="input" type="number" min="1" max={available} value={saleForm.qtySold} onChange={sf("qtySold")} />
+                        </label>
+                        <label style={{ display: "block" }}>
+                          <span style={labelStyle}>Sale Price (per unit)</span>
+                          <input className="input" type="number" step="1" value={saleForm.priceSold} onChange={sf("priceSold")} placeholder="0" />
+                        </label>
+                        <label style={{ display: "block" }}>
+                          <span style={labelStyle}>Date Sold</span>
+                          <input className="input" type="date" value={saleForm.dateSold} onChange={sf("dateSold")} />
+                        </label>
+                        <label style={{ display: "block" }}>
+                          <span style={labelStyle}>Notes</span>
+                          <input className="input" value={saleForm.notes} onChange={sf("notes")} placeholder="Optional" />
+                        </label>
+                      </div>
+                      {saleError && (
+                        <div style={{ marginTop: 8, fontSize: "0.75rem", color: "#f87171", fontWeight: 600 }}>{saleError}</div>
+                      )}
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={recordSale}
+                        disabled={saleLoading}
+                        style={{ marginTop: 10 }}
+                      >
+                        {saleLoading ? "Saving…" : "Save Sale"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Sales list */}
+                  {currentItem.sales.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "1rem", color: "var(--text-muted)", fontSize: "0.75rem" }}>No sales recorded yet</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {currentItem.sales.map(sale => (
+                        <div key={sale.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--navy-800)", borderRadius: 8, padding: "8px 12px", border: "1px solid var(--border)" }}>
+                          <div>
+                            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.78rem", fontWeight: 700, color: "#34d399" }}>
+                              {sale.qtySold} unit{sale.qtySold !== 1 ? "s" : ""} @ {fmtMoney(sale.priceSold)} each
+                              <span style={{ color: "var(--gold)", marginLeft: 8 }}>= {fmtMoney(sale.qtySold * sale.priceSold)}</span>
+                            </div>
+                            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: 2 }}>
+                              {fmtDate(sale.dateSold)}{sale.notes ? ` · ${sale.notes}` : ""}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteSale(sale.id)}
+                            style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: "0.65rem" }}
+                          >✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
+
             <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid var(--border-strong)", display: "flex", gap: "0.75rem", justifyContent: "flex-end", background: "var(--navy-900)", borderRadius: "0 0 16px 16px" }}>
               {modal !== "new" && (
                 <button className="btn btn-danger" onClick={deleteItem} style={{ marginRight: "auto" }}>Delete</button>
@@ -337,7 +607,6 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
         </div>
       )}
 
-      {/* Toast */}
       <div className={`toast ${toastVisible ? "show" : ""}`}>{toast}</div>
     </div>
   );
