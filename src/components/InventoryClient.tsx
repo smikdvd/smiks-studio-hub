@@ -324,15 +324,19 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
             const soldQty = item.sales.reduce((s, sale) => s + sale.qtySold, 0);
             const partial = soldQty > 0 && avail > 0;
             const illegible = item.notes?.includes("⚠️ ILLEGIBLE") ?? false;
+            const isReceipt = item.notes?.includes("[RCP]") ?? false;
+            const highlight = isReceipt || illegible;
             return (
               <div key={item.id} onClick={() => openEdit(item)}
-                style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "12px 18px", borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "background 0.15s", background: illegible ? "rgba(248,113,113,0.07)" : undefined, borderLeft: illegible ? "3px solid #f87171" : "3px solid transparent" }}
-                onMouseEnter={e => (e.currentTarget.style.background = illegible ? "rgba(248,113,113,0.13)" : "var(--surface-2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = illegible ? "rgba(248,113,113,0.07)" : "")}>
+                style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "12px 18px", borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "background 0.15s", background: highlight ? "rgba(248,113,113,0.07)" : undefined, borderLeft: highlight ? "3px solid #f87171" : "3px solid transparent" }}
+                onMouseEnter={e => (e.currentTarget.style.background = highlight ? "rgba(248,113,113,0.13)" : "var(--surface-2)")}
+                onMouseLeave={e => (e.currentTarget.style.background = highlight ? "rgba(248,113,113,0.07)" : "")}>
                 <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.62rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }} title={item.id}>{item.id.slice(0, 8)}</div>
                 <div>
-                  <div style={{ fontWeight: 700, color: illegible ? "#fca5a5" : "var(--cream)", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {illegible && <span style={{ marginRight: 5, fontSize: "0.7rem" }}>⚠️</span>}{item.name}
+                  <div style={{ fontWeight: 700, color: highlight ? "#fca5a5" : "var(--cream)", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {illegible && <span style={{ marginRight: 5, fontSize: "0.7rem" }}>⚠️</span>}
+                    {isReceipt && !illegible && <span style={{ marginRight: 5, fontSize: "0.7rem" }}>🧾</span>}
+                    {item.name}
                   </div>
                   {item.brand && <div style={{ fontSize: "0.67rem", color: "var(--text-muted)", fontWeight: 500 }}>{item.brand}</div>}
                 </div>
@@ -395,13 +399,19 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
 
             <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "70vh", overflowY: "auto" }}>
 
-              {/* Illegible warning banner */}
-              {currentItem?.notes?.includes("⚠️ ILLEGIBLE") && (
+              {/* Receipt item banner */}
+              {currentItem?.notes?.includes("[RCP]") && (
                 <div style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: 1 }}>⚠️</span>
+                  <span style={{ fontSize: "1rem", flexShrink: 0, marginTop: 1 }}>{currentItem.notes?.includes("⚠️ ILLEGIBLE") ? "⚠️" : "🧾"}</span>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: "0.75rem", color: "#fca5a5", marginBottom: 2 }}>DIFFICULT TO READ</div>
-                    <div style={{ fontSize: "0.72rem", color: "rgba(252,165,165,0.8)", lineHeight: 1.5 }}>This item was flagged as hard to read on the physical receipt. Please verify the details and update as needed.</div>
+                    <div style={{ fontWeight: 700, fontSize: "0.75rem", color: "#fca5a5", marginBottom: 2 }}>
+                      {currentItem.notes?.includes("⚠️ ILLEGIBLE") ? "DIFFICULT TO READ" : "IMPORTED FROM RECEIPT"}
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "rgba(252,165,165,0.8)", lineHeight: 1.5 }}>
+                      {currentItem.notes?.includes("⚠️ ILLEGIBLE")
+                        ? "This item was flagged as hard to read on the physical receipt. Please verify the details and update as needed."
+                        : "This item was imported from the physical receipt book. Verify and update details as needed."}
+                    </div>
                   </div>
                 </div>
               )}
