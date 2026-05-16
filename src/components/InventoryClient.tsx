@@ -119,12 +119,22 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   }
 
   const filtered = useMemo(() => {
-    return items.filter(i => {
+    const list = items.filter(i => {
       const q = search.toLowerCase();
       const matchQ = !q || i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
       const matchCat = !activeCat || i.category === activeCat;
       const matchSt = !statusFilter || i.status === statusFilter;
       return matchQ && matchCat && matchSt;
+    });
+    // Sort by most recent sale date desc; fall back to createdAt
+    return list.sort((a, b) => {
+      const aDate = a.sales.length > 0
+        ? a.sales.reduce((latest, s) => (s.dateSold ?? "") > latest ? (s.dateSold ?? "") : latest, "")
+        : a.createdAt;
+      const bDate = b.sales.length > 0
+        ? b.sales.reduce((latest, s) => (s.dateSold ?? "") > latest ? (s.dateSold ?? "") : latest, "")
+        : b.createdAt;
+      return bDate > aDate ? 1 : bDate < aDate ? -1 : 0;
     });
   }, [items, search, activeCat, statusFilter]);
 
