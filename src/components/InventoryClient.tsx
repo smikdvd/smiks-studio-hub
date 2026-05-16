@@ -370,7 +370,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
 
       {/* Modal */}
       {modal !== null && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" onClick={e => e.stopPropagation()} style={{ cursor: "default" }}>
           <div className="modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: "1.5rem 1.5rem 1.25rem", borderBottom: "1px solid var(--border-strong)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", background: "var(--navy-900)", borderRadius: "16px 16px 0 0" }}>
               <div>
@@ -391,7 +391,6 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
                   </div>
                 )}
               </div>
-              <button onClick={() => setModal(null)} style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.9rem", padding: "6px 10px", borderRadius: 7 }}>✕</button>
             </div>
 
             <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "70vh", overflowY: "auto" }}>
