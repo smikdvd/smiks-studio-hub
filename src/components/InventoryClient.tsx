@@ -102,6 +102,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [receiptFilter, setReceiptFilter] = useState(false);
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -124,7 +125,8 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       const matchQ = !q || i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
       const matchCat = !activeCat || i.category === activeCat;
       const matchSt = !statusFilter || i.status === statusFilter;
-      return matchQ && matchCat && matchSt;
+      const matchRcp = !receiptFilter || (i.notes?.includes("[RCP]") ?? false);
+      return matchQ && matchCat && matchSt && matchRcp;
     });
     // Sort by most recent sale date desc; fall back to createdAt
     return list.sort((a, b) => {
@@ -136,7 +138,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
         : b.createdAt;
       return bDate > aDate ? 1 : bDate < aDate ? -1 : 0;
     });
-  }, [items, search, activeCat, statusFilter]);
+  }, [items, search, activeCat, statusFilter, receiptFilter]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -310,6 +312,12 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
             </button>
           ))}
         </div>
+        <button
+          className={`filter-btn ${receiptFilter ? "active" : ""}`}
+          onClick={() => { setReceiptFilter(v => !v); setPage(1); }}
+          style={receiptFilter ? { background: "rgba(248,113,113,0.18)", color: "#fca5a5", borderColor: "rgba(248,113,113,0.5)" } : {}}>
+          🧾 Receipts ({items.filter(i => i.notes?.includes("[RCP]")).length})
+        </button>
         <select className="filter-btn" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
           style={{ cursor: "pointer", background: "var(--surface)", color: "var(--text-2)" }}>
           <option value="">All Statuses</option>
