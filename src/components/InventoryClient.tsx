@@ -128,14 +128,16 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       const matchRcp = !receiptFilter || (i.notes?.includes("[RCP]") ?? false);
       return matchQ && matchCat && matchSt && matchRcp;
     });
-    // Sort by most recent sale date desc; fall back to createdAt
+    // Sort by date: use dateBought if set, else first sale's dateSold, else createdAt — newest first
     return list.sort((a, b) => {
-      const aDate = a.sales.length > 0
-        ? a.sales.reduce((latest, s) => (s.dateSold ?? "") > latest ? (s.dateSold ?? "") : latest, "")
-        : a.createdAt;
-      const bDate = b.sales.length > 0
-        ? b.sales.reduce((latest, s) => (s.dateSold ?? "") > latest ? (s.dateSold ?? "") : latest, "")
-        : b.createdAt;
+      const getDate = (i: InventoryItem) =>
+        i.dateBought
+          ? i.dateBought
+          : i.sales.length > 0
+            ? (i.sales[i.sales.length - 1].dateSold ?? i.createdAt)
+            : i.createdAt;
+      const aDate = getDate(a);
+      const bDate = getDate(b);
       return bDate > aDate ? 1 : bDate < aDate ? -1 : 0;
     });
   }, [items, search, activeCat, statusFilter, receiptFilter]);
@@ -328,7 +330,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       {/* Table */}
       <div className="table-scroll" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "11px 18px", borderBottom: "1px solid var(--border-strong)", background: "var(--navy-800)" }}>
-          {["ID", "Item", "Category", "Stock", "Date Bought", "Price", "Status"].map(h => (
+          {["ID", "Item", "Category", "Stock", "Date", "Price", "Status"].map(h => (
             <div key={h} style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)" }}>{h}</div>
           ))}
         </div>
@@ -343,15 +345,19 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
             const partial = soldQty > 0 && avail > 0;
             const illegible = item.notes?.includes("⚠️ ILLEGIBLE") ?? false;
             const isReceipt = item.notes?.includes("[RCP]") ?? false;
-            const highlight = isReceipt || illegible;
+            const nameRed = isReceipt || illegible;
+            // For receipt items with no dateBought, show the sale date instead
+            const displayDate = item.dateBought
+              ? item.dateBought
+              : (item.sales.length > 0 ? (item.sales[item.sales.length - 1].dateSold ?? null) : null);
             return (
               <div key={item.id} onClick={() => openEdit(item)}
-                style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "12px 18px", borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "background 0.15s", background: highlight ? "rgba(248,113,113,0.07)" : undefined, borderLeft: highlight ? "3px solid #f87171" : "3px solid transparent" }}
-                onMouseEnter={e => (e.currentTarget.style.background = highlight ? "rgba(248,113,113,0.13)" : "var(--surface-2)")}
-                onMouseLeave={e => (e.currentTarget.style.background = highlight ? "rgba(248,113,113,0.07)" : "")}>
+                style={{ display: "grid", gridTemplateColumns: "80px 1fr 150px 100px 120px 120px 120px", padding: "12px 18px", borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "background 0.15s" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+                onMouseLeave={e => (e.currentTarget.style.background = "")}>
                 <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.62rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }} title={item.id}>{item.id.slice(0, 8)}</div>
                 <div>
-                  <div style={{ fontWeight: 700, color: highlight ? "#fca5a5" : "var(--cream)", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontWeight: 700, color: nameRed ? "#fca5a5" : "var(--cream)", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {illegible && <span style={{ marginRight: 5, fontSize: "0.7rem" }}>⚠️</span>}
                     {isReceipt && !illegible && <span style={{ marginRight: 5, fontSize: "0.7rem" }}>🧾</span>}
                     {item.name}
@@ -368,7 +374,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
                     <span style={{ fontSize: "0.58rem", color: "var(--text-muted)", fontWeight: 600 }}>({soldQty} sold)</span>
                   )}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.68rem", color: "var(--text-2)" }}>{fmtDate(item.dateBought)}</div>
+                <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.68rem", color: "var(--text-2)" }}>{fmtDate(displayDate)}</div>
                 <div style={{ display: "flex", alignItems: "center", fontFamily: "'JetBrains Mono', monospace", fontSize: "0.78rem", fontWeight: 700, color: "var(--gold-light)" }}>{fmtMoney(item.priceBought)}</div>
                 <div style={{ display: "flex", alignItems: "center" }}><StatusChip status={item.status} /></div>
               </div>
