@@ -122,14 +122,13 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const filtered = useMemo(() => {
     const list = items.filter(i => {
       const q = search.toLowerCase().trim();
-      const noPriceSearch = ["no price", "no price indicated", "price 0", "unprice", "unpriced", "missing price", "no cost"].some(k => q === k || q.includes(k));
-      const matchQ = !q
-        ? true
-        : noPriceSearch
-          ? (!i.priceSold || i.priceSold === 0)
-          : i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
+      const matchQ = !q || i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
       const matchCat = !activeCat || i.category === activeCat;
-      const matchSt = !statusFilter || i.status === statusFilter;
+      const matchSt = !statusFilter
+        ? true
+        : statusFilter === "__no_price__"
+          ? (!i.priceSold || i.priceSold === 0)
+          : i.status === statusFilter;
       const matchRcp = !receiptFilter || (i.notes?.includes("[RCP]") ?? false);
       return matchQ && matchCat && matchSt && matchRcp;
     });
@@ -329,6 +328,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
           style={{ cursor: "pointer", background: "var(--surface)", color: "var(--text-2)" }}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s}>{s}</option>)}
+          <option value="__no_price__">No Price Indicated</option>
         </select>
       </div>
 
