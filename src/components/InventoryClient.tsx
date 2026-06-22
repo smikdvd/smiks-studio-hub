@@ -60,6 +60,22 @@ function fmtDate(s: string | null) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" });
 }
 
+function buildDateSearch(s: string | null): string {
+  if (!s) return "";
+  // Parse date-only strings locally to avoid UTC timezone shift
+  const parts = s.split("-").map(Number);
+  const dt = parts.length >= 2 ? new Date(parts[0], parts[1] - 1, parts[2] || 1) : new Date(s);
+  return [
+    s,                                                                                        // 2025-03-21
+    dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }),     // 21 Mar 25
+    dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),     // 21 Mar 2025
+    dt.toLocaleDateString("en-GB", { month: "short", year: "numeric" }),                     // Mar 2025
+    dt.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),                      // March 2025
+    dt.toLocaleDateString("en-US", { month: "long" }),                                       // March
+    String(parts[0]),                                                                         // 2025
+  ].join(" ").toLowerCase();
+}
+
 function fmtMoney(v: number) {
   if (!v) return "—";
   return "USh " + Number(v).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -123,13 +139,12 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
     const list = items.filter(i => {
       const q = search.toLowerCase().trim();
       const itemDate = i.dateBought || (i.sales.length > 0 ? i.sales[i.sales.length - 1].dateSold : null);
-      const fmtd = itemDate ? fmtDate(itemDate).toLowerCase() : "";
+      const dateSearch = buildDateSearch(itemDate);
       const matchQ = !q
         || i.name.toLowerCase().includes(q)
         || (i.brand || "").toLowerCase().includes(q)
         || i.id.toLowerCase().includes(q)
-        || (itemDate ? itemDate.includes(q) : false)
-        || fmtd.includes(q);
+        || dateSearch.includes(q);
       const matchCat = !activeCat || i.category === activeCat;
       const matchSt = !statusFilter
         ? true
