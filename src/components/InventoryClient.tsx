@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface InventorySale {
   id: string;
@@ -118,8 +119,12 @@ function SuggestInput({ value, onChange, suggestions, placeholder }: {
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [rect, setRect] = useState<DOMRect | null>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
   const inputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
   const filtered = useMemo(() => {
     if (!value.trim()) return suggestions.slice(0, 8);
     const q = value.toLowerCase();
@@ -127,12 +132,41 @@ function SuggestInput({ value, onChange, suggestions, placeholder }: {
   }, [value, suggestions]);
 
   function showDropdown() {
-    if (inputRef.current) setRect(inputRef.current.getBoundingClientRect());
+    if (inputRef.current) {
+      const r = inputRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left, width: r.width });
+    }
     setOpen(true);
   }
 
+  const dropdown = mounted && open && filtered.length > 0 ? createPortal(
+    <div style={{
+      position: "fixed",
+      top: pos.top,
+      left: pos.left,
+      width: pos.width,
+      zIndex: 99999,
+      background: "#112238",
+      border: "1px solid rgba(245,234,214,0.25)",
+      borderRadius: 8,
+      boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+      overflow: "hidden",
+    }}>
+      {filtered.map(s => (
+        <div key={s}
+          onMouseDown={e => { e.preventDefault(); onChange(s); setOpen(false); }}
+          style={{ padding: "9px 14px", fontSize: "0.82rem", color: "#f5ead6", cursor: "pointer", borderBottom: "1px solid rgba(245,234,214,0.08)" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#1d3f5e")}
+          onMouseLeave={e => (e.currentTarget.style.background = "")}>
+          {s}
+        </div>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div style={{ position: "relative" }}>
+    <div>
       <input
         ref={inputRef}
         className="input"
@@ -142,30 +176,7 @@ function SuggestInput({ value, onChange, suggestions, placeholder }: {
         onFocus={showDropdown}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
       />
-      {open && filtered.length > 0 && rect && (
-        <div style={{
-          position: "fixed",
-          top: rect.bottom + 4,
-          left: rect.left,
-          width: rect.width,
-          zIndex: 9999,
-          background: "var(--navy-800)",
-          border: "1px solid var(--border-strong)",
-          borderRadius: 8,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-          overflow: "hidden",
-        }}>
-          {filtered.map(s => (
-            <div key={s}
-              onMouseDown={() => { onChange(s); setOpen(false); }}
-              style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--cream)", cursor: "pointer" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "")}>
-              {s}
-            </div>
-          ))}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }
