@@ -118,28 +118,42 @@ function SuggestInput({ value, onChange, suggestions, placeholder }: {
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const filtered = useMemo(() => {
     if (!value.trim()) return suggestions.slice(0, 8);
     const q = value.toLowerCase();
     return suggestions.filter(s => s.toLowerCase().includes(q)).slice(0, 8);
   }, [value, suggestions]);
 
+  function showDropdown() {
+    if (inputRef.current) setRect(inputRef.current.getBoundingClientRect());
+    setOpen(true);
+  }
+
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div style={{ position: "relative" }}>
       <input
+        ref={inputRef}
         className="input"
         value={value}
         placeholder={placeholder}
-        onChange={e => { onChange(e.target.value); setOpen(true); }}
-        onFocus={() => setOpen(true)}
+        onChange={e => { onChange(e.target.value); showDropdown(); }}
+        onFocus={showDropdown}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
       />
-      {open && filtered.length > 0 && (
+      {open && filtered.length > 0 && rect && (
         <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 1000,
-          background: "var(--navy-800)", border: "1px solid var(--border-strong)",
-          borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.4)", overflow: "hidden",
+          position: "fixed",
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+          zIndex: 9999,
+          background: "var(--navy-800)",
+          border: "1px solid var(--border-strong)",
+          borderRadius: 8,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+          overflow: "hidden",
         }}>
           {filtered.map(s => (
             <div key={s}
