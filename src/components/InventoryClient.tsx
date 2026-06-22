@@ -319,6 +319,13 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const available = currentItem ? getAvailable(currentItem) : 0;
   const totalSoldQty = currentItem ? currentItem.sales.reduce((s, sale) => s + sale.qtySold, 0) : 0;
 
+  const brandSuggestions = useMemo(() =>
+    [...new Set(items.map(i => i.brand).filter(Boolean) as string[])].sort(),
+  [items]);
+  const nameSuggestions = useMemo(() =>
+    [...new Set(items.map(i => i.name).filter(Boolean))].sort(),
+  [items]);
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
@@ -471,11 +478,11 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
                   <span style={labelStyle}>Item Name</span>
-                  <input className="input" value={form.name} onChange={f("name")} placeholder="Item name" />
+                  <input className="input" list="name-suggestions" value={form.name} onChange={f("name")} placeholder="Item name" autoComplete="off" />
                 </label>
                 <label style={{ display: "block" }}>
                   <span style={labelStyle}>Brand / Model</span>
-                  <input className="input" value={form.brand} onChange={f("brand")} placeholder="Brand or model" />
+                  <input className="input" list="brand-suggestions" value={form.brand} onChange={f("brand")} placeholder="Brand or model" autoComplete="off" />
                 </label>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
@@ -564,6 +571,13 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
                 <span style={labelStyle}>Notes</span>
                 <textarea className="input" rows={2} value={form.notes} onChange={f("notes")} placeholder="Any notes..." style={{ resize: "vertical", minHeight: 60 }} />
               </label>
+
+              <datalist id="brand-suggestions">
+                {brandSuggestions.map(b => <option key={b} value={b} />)}
+              </datalist>
+              <datalist id="name-suggestions">
+                {nameSuggestions.map(n => <option key={n} value={n} />)}
+              </datalist>
 
               {/* ── Sales history (edit mode only) ── */}
               {currentItem && (
