@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 
 interface InventorySale {
   id: string;
@@ -110,6 +110,51 @@ const labelStyle: React.CSSProperties = {
   fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em",
   textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6,
 };
+
+function SuggestInput({ value, onChange, suggestions, placeholder }: {
+  value: string;
+  onChange: (v: string) => void;
+  suggestions: string[];
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const filtered = useMemo(() => {
+    if (!value.trim()) return suggestions.slice(0, 8);
+    const q = value.toLowerCase();
+    return suggestions.filter(s => s.toLowerCase().includes(q)).slice(0, 8);
+  }, [value, suggestions]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <input
+        className="input"
+        value={value}
+        placeholder={placeholder}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && filtered.length > 0 && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 1000,
+          background: "var(--navy-800)", border: "1px solid var(--border-strong)",
+          borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.4)", overflow: "hidden",
+        }}>
+          {filtered.map(s => (
+            <div key={s}
+              onMouseDown={() => { onChange(s); setOpen(false); }}
+              style={{ padding: "8px 12px", fontSize: "0.8rem", color: "var(--cream)", cursor: "pointer" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "")}>
+              {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function InventoryClient({ items: initial }: { items: InventoryItem[] }) {
   const [items, setItems] = useState(initial);
@@ -478,11 +523,11 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
                   <span style={labelStyle}>Item Name</span>
-                  <input className="input" list="name-suggestions" value={form.name} onChange={f("name")} placeholder="Item name" autoComplete="off" />
+                  <SuggestInput value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} suggestions={nameSuggestions} placeholder="Item name" />
                 </label>
                 <label style={{ display: "block" }}>
                   <span style={labelStyle}>Brand / Model</span>
-                  <input className="input" list="brand-suggestions" value={form.brand} onChange={f("brand")} placeholder="Brand or model" autoComplete="off" />
+                  <SuggestInput value={form.brand} onChange={v => setForm(p => ({ ...p, brand: v }))} suggestions={brandSuggestions} placeholder="Brand or model" />
                 </label>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
@@ -571,13 +616,6 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
                 <span style={labelStyle}>Notes</span>
                 <textarea className="input" rows={2} value={form.notes} onChange={f("notes")} placeholder="Any notes..." style={{ resize: "vertical", minHeight: 60 }} />
               </label>
-
-              <datalist id="brand-suggestions">
-                {brandSuggestions.map(b => <option key={b} value={b} />)}
-              </datalist>
-              <datalist id="name-suggestions">
-                {nameSuggestions.map(n => <option key={n} value={n} />)}
-              </datalist>
 
               {/* ── Sales history (edit mode only) ── */}
               {currentItem && (
