@@ -122,7 +122,14 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const filtered = useMemo(() => {
     const list = items.filter(i => {
       const q = search.toLowerCase().trim();
-      const matchQ = !q || i.name.toLowerCase().includes(q) || (i.brand || "").toLowerCase().includes(q) || i.id.toLowerCase().includes(q);
+      const itemDate = i.dateBought || (i.sales.length > 0 ? i.sales[i.sales.length - 1].dateSold : null);
+      const fmtd = itemDate ? fmtDate(itemDate).toLowerCase() : "";
+      const matchQ = !q
+        || i.name.toLowerCase().includes(q)
+        || (i.brand || "").toLowerCase().includes(q)
+        || i.id.toLowerCase().includes(q)
+        || (itemDate ? itemDate.includes(q) : false)
+        || fmtd.includes(q);
       const matchCat = !activeCat || i.category === activeCat;
       const matchSt = !statusFilter
         ? true
@@ -308,7 +315,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem", alignItems: "center", flexWrap: "wrap" }}>
         <div className="search-box" style={{ flex: 1, minWidth: 200 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#7070a0" strokeWidth="1.5"/><path d="M11 11l3 3" stroke="#7070a0" strokeWidth="1.5" strokeLinecap="round"/></svg>
-          <input placeholder="Search items, brands..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+          <input placeholder="Search items, brands, dates..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {["All", ...CATEGORIES].map(c => (
