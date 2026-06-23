@@ -42,7 +42,7 @@ export const auth = betterAuth({
         html: emailHtml(user.name || user.email, "Verify Your Email Address", "Click the button below to verify your email address and secure your account.", "Verify Email", url),
       });
     },
-    sendChangeEmailVerification: async ({ user, newEmail, url }) => {
+    sendChangeEmailVerification: async ({ user, newEmail, url }: { user: { name?: string | null; email: string }; newEmail: string; url: string }) => {
       await getResend().emails.send({
         from: "Smiks Studio Hub <onboarding@resend.dev>",
         to: newEmail,
