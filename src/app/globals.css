@@ -485,9 +485,14 @@ select.input option { background: var(--navy-800); color: var(--cream); }
   .print-hide { display: none !important; }
 
   /* ── Invoice print view ── */
-  /* When printing, hide everything except the invoice */
-  body > * { display: none !important; }
-  .print-invoice-view { display: block !important; position: static !important; }
+  /* Blank the rest of the page ONLY when an invoice is queued for printing.
+     Unscoped, this hid every element on every page — printing Reports gave a
+     blank sheet. .print-invoice-view is rendered only when printTarget is set. */
+  body:has(.print-invoice-view) > * { display: none !important; }
+  body:has(.print-invoice-view) .print-invoice-view { display: block !important; position: static !important; }
+
+  /* Sections the user deselected in the report print picker */
+  .print-exclude { display: none !important; }
 
   .print-page {
     max-width: 100%;

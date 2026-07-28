@@ -136,6 +136,23 @@ export default function ReportsClient({
   const [soldItems, setSoldItems] = useState(initialSold);
   const [adjustments, setAdjustments] = useState(initialAdjustments);
 
+  // Which sections get included when printing
+  const PRINT_SECTIONS = [
+    { key: "kpis", label: "Summary figures" },
+    { key: "monthly", label: "Monthly revenue vs expenses" },
+    { key: "sold", label: "Inventory items sold" },
+    { key: "sessions", label: "Studio sessions" },
+    { key: "expenses", label: "Expense entries" },
+    { key: "adjustments", label: "Manual adjustments" },
+    { key: "breakdowns", label: "Category breakdowns" },
+  ] as const;
+  const [printPick, setPrintPick] = useState<Record<string, boolean>>(
+    Object.fromEntries(PRINT_SECTIONS.map(s => [s.key, true]))
+  );
+  const [showPrintPicker, setShowPrintPicker] = useState(false);
+  // Applied to a section's wrapper so @media print can drop it
+  const pc = (key: string) => (printPick[key] ? undefined : "print-exclude");
+
   const [edit, setEdit] = useState<EditState>(null);
   const [saving, setSaving] = useState(false);
   const [editErr, setEditErr] = useState("");
@@ -490,7 +507,7 @@ export default function ReportsClient({
               </button>
             ))}
           </div>
-          <button className="add-btn" onClick={() => window.print()} style={{ display: "flex", alignItems: "center", gap: 7 }}>
+          <button className="add-btn" onClick={() => setShowPrintPicker(true)} style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
             </svg>
@@ -500,7 +517,7 @@ export default function ReportsClient({
       </div>
 
       {/* KPIs */}
-      <div className="g5" style={{ marginBottom: "1.5rem" }}>
+      <div className={`g5 ${pc("kpis") ?? ""}`} style={{ marginBottom: "1.5rem" }}>
         <div className="kpi-card accent2">
           <div className="kpi-label">Session Revenue</div>
           <div className="kpi-value" style={{ fontSize: "1.2rem" }}>{fmtMoney(sessionRevenue)}</div>
@@ -529,7 +546,7 @@ export default function ReportsClient({
       </div>
 
       {/* Margin + gross profit */}
-      <div className="g2" style={{ marginBottom: "1rem" }}>
+      <div className={`g2 ${pc("kpis") ?? ""}`} style={{ marginBottom: "1rem" }}>
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "0.9rem 1.25rem", display: "flex", alignItems: "center", gap: "1rem" }}>
           <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", flexShrink: 0 }}>Profit Margin</div>
           <div style={{ flex: 1, height: 8, background: "rgba(245,234,214,0.07)", borderRadius: 4, overflow: "hidden" }}>
@@ -558,7 +575,7 @@ export default function ReportsClient({
       </div>
 
       {/* Monthly chart */}
-      <div className="chart-card" style={{ marginBottom: "1rem" }}>
+      <div className={`chart-card ${pc("monthly") ?? ""}`} style={{ marginBottom: "1rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div className="chart-title" style={{ marginBottom: 0 }}>Monthly Revenue vs Expenses</div>
           <div style={{ display: "flex", gap: "1rem", fontSize: "0.68rem", fontWeight: 600, flexWrap: "wrap" }}>
@@ -595,7 +612,7 @@ export default function ReportsClient({
       </div>
 
       {/* Inventory sales */}
-      <div className="chart-card" style={{ marginBottom: "1rem" }}>
+      <div className={`chart-card ${pc("sold") ?? ""}`} style={{ marginBottom: "1rem" }}>
         <div className="chart-title">Inventory Items Sold</div>
         {soldSorted.length === 0 ? (
           <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", padding: "1rem 0" }}>No inventory items sold yet</div>
@@ -651,7 +668,7 @@ export default function ReportsClient({
       </div>
 
       {/* Sessions */}
-      <div className="chart-card" style={{ marginBottom: "1rem" }}>
+      <div className={`chart-card ${pc("sessions") ?? ""}`} style={{ marginBottom: "1rem" }}>
         <div className="chart-title">Studio Sessions</div>
         {sessionsSorted.length === 0 ? (
           <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", padding: "1rem 0" }}>No sessions recorded yet</div>
@@ -688,7 +705,7 @@ export default function ReportsClient({
       </div>
 
       {/* Expenses */}
-      <div className="chart-card" style={{ marginBottom: "1rem" }}>
+      <div className={`chart-card ${pc("expenses") ?? ""}`} style={{ marginBottom: "1rem" }}>
         <div className="chart-title">Expense Entries</div>
         {expensesSorted.length === 0 ? (
           <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", padding: "1rem 0" }}>No expenses recorded yet</div>
@@ -719,7 +736,7 @@ export default function ReportsClient({
       </div>
 
       {/* Manual adjustments */}
-      <div className="chart-card" style={{ marginBottom: "1rem" }}>
+      <div className={`chart-card ${pc("adjustments") ?? ""}`} style={{ marginBottom: "1rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.1rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div className="chart-title" style={{ marginBottom: 0 }}>Manual Adjustments</div>
           <button className="add-btn no-print" onClick={newAdjustment} style={{ padding: "6px 14px", fontSize: "0.7rem" }}>+ Add Adjustment</button>
@@ -763,7 +780,7 @@ export default function ReportsClient({
       </div>
 
       {/* Breakdowns */}
-      <div className="chart-grid g2">
+      <div className={`chart-grid g2 ${pc("breakdowns") ?? ""}`}>
         <div className="chart-card">
           <div className="chart-title">Session Revenue by Type</div>
           {revenueTypes.length === 0 ? (
@@ -808,6 +825,61 @@ export default function ReportsClient({
           )}
         </div>
       </div>
+
+      {/* ── Print section picker ── */}
+      {showPrintPicker && (
+        <div className="modal-overlay no-print">
+          <div className="modal" style={{ maxWidth: 460 }}>
+            <div style={{ padding: "1.4rem 1.5rem 1.1rem", borderBottom: "1px solid var(--border-strong)", background: "var(--navy-900)", borderRadius: "16px 16px 0 0" }}>
+              <div style={{ fontSize: "1rem", fontWeight: 800, color: "var(--cream)", textTransform: "uppercase", letterSpacing: "0.02em" }}>Print Report</div>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: 4 }}>
+                Choose which sections to include
+              </div>
+            </div>
+
+            <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: 2, maxHeight: "55vh", overflowY: "auto" }}>
+              {PRINT_SECTIONS.map(s => (
+                <label key={s.key}
+                  style={{ display: "flex", alignItems: "center", gap: 11, padding: "9px 10px", borderRadius: 8, cursor: "pointer", fontSize: "0.82rem", color: "var(--cream)", fontWeight: 600 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "")}>
+                  <input
+                    type="checkbox"
+                    checked={printPick[s.key]}
+                    onChange={e => setPrintPick(p => ({ ...p, [s.key]: e.target.checked }))}
+                    style={{ width: 16, height: 16, accentColor: "var(--gold)", cursor: "pointer", flexShrink: 0 }}
+                  />
+                  {s.label}
+                </label>
+              ))}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                <button className="filter-btn" onClick={() => setPrintPick(Object.fromEntries(PRINT_SECTIONS.map(s => [s.key, true])))}>Select all</button>
+                <button className="filter-btn" onClick={() => setPrintPick(Object.fromEntries(PRINT_SECTIONS.map(s => [s.key, false])))}>Clear all</button>
+              </div>
+
+              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: 12, lineHeight: 1.55 }}>
+                Tables print the full history. The monthly chart covers the{" "}
+                <strong style={{ color: "var(--gold)" }}>
+                  {period === "12m" ? "last 12 months" : period === "6m" ? "last 6 months" : "last 3 months"}
+                </strong>{" "}
+                — close this and change the range above if you need a different span.
+              </div>
+            </div>
+
+            <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid var(--border-strong)", display: "flex", gap: "0.75rem", justifyContent: "flex-end", background: "var(--navy-900)", borderRadius: "0 0 16px 16px" }}>
+              <button className="btn btn-secondary" onClick={() => setShowPrintPicker(false)}>Cancel</button>
+              <button
+                className="btn"
+                disabled={!Object.values(printPick).some(Boolean)}
+                onClick={() => { setShowPrintPicker(false); setTimeout(() => window.print(), 120); }}
+              >
+                Print
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Edit modal ── */}
       {edit && (
