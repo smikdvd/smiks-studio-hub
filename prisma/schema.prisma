@@ -8,6 +8,57 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ── Better Auth models ──
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}
+
 model Customer {
   id        Int      @id @default(autoincrement())
   name      String
@@ -46,20 +97,33 @@ model Task {
 }
 
 model InventoryItem {
-  id          String   @id @default(cuid())
+  id          String              @id @default(cuid())
   name        String
   brand       String?
-  category    String   @default("Other")
-  qty         Int      @default(1)
+  category    String              @default("Other")
+  qty         Int                 @default(1)
   dateBought  String?
-  priceBought Float    @default(0)
-  dateSold    String?
-  priceSold   Float    @default(0)
-  status      String   @default("In Stock")
-  condition   String   @default("New")
+  priceBought   Float               @default(0)
+  shippingCost  Float               @default(0)
+  dateSold    String?             // legacy — kept for backward compat
+  priceSold   Float               @default(0) // default / asking price
+  status      String              @default("In Stock")
+  condition   String              @default("New")
   notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  sales       InventoryItemSale[]
+}
+
+model InventoryItemSale {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  qtySold         Int           @default(1)
+  priceSold       Float         @default(0)
+  dateSold        String?
+  notes           String?
+  createdAt       DateTime      @default(now())
 }
 
 model StudioSession {
@@ -88,4 +152,46 @@ model Expense {
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Adjustment {
+  id        Int      @id @default(autoincrement())
+  desc      String
+  kind      String   @default("Income") // "Income" | "Expense"
+  amount    Float    @default(0)
+  date      String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Invoice {
+  id          Int           @id @default(autoincrement())
+  number      String        @unique
+  type        String        @default("Invoice")
+  date        String?
+  dueDate     String?
+  clientName  String
+  clientEmail String?
+  clientPhone String?
+  clientAddr  String?
+  notes       String?
+  status      String        @default("Draft")
+  subtotal    Float         @default(0)
+  tax         Float         @default(0)
+  total       Float         @default(0)
+  items       InvoiceItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id              Int     @id @default(autoincrement())
+  invoiceId       Int
+  invoice         Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description     String
+  inventoryItemId String?
+  qty             Float   @default(1)
+  unitPrice       Float   @default(0)
+  total           Float   @default(0)
 }

@@ -189,6 +189,7 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
   const [activeCat, setActiveCat] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [receiptFilter, setReceiptFilter] = useState(false);
+  const [sortBy, setSortBy] = useState<"updated" | "date" | "name" | "price">("updated");
   const [page, setPage] = useState(1);
   const [toast, setToast] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -224,19 +225,24 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
       const matchRcp = !receiptFilter || (i.notes?.includes("[RCP]") ?? false);
       return matchQ && matchCat && matchSt && matchRcp;
     });
-    // Sort by date: use dateBought if set, else first sale's dateSold, else createdAt — newest first
+    // Transaction date: dateBought if set, else the latest sale date, else when it was created
+    const txDate = (i: InventoryItem) =>
+      i.dateBought
+        ? i.dateBought
+        : i.sales.length > 0
+          ? (i.sales[i.sales.length - 1].dateSold ?? i.createdAt)
+          : i.createdAt;
+    const desc = (a: string, b: string) => (b > a ? 1 : b < a ? -1 : 0);
+
     return list.sort((a, b) => {
-      const getDate = (i: InventoryItem) =>
-        i.dateBought
-          ? i.dateBought
-          : i.sales.length > 0
-            ? (i.sales[i.sales.length - 1].dateSold ?? i.createdAt)
-            : i.createdAt;
-      const aDate = getDate(a);
-      const bDate = getDate(b);
-      return bDate > aDate ? 1 : bDate < aDate ? -1 : 0;
+      switch (sortBy) {
+        case "updated": return desc(a.updatedAt, b.updatedAt);
+        case "date":    return desc(txDate(a), txDate(b));
+        case "name":    return a.name.localeCompare(b.name);
+        case "price":   return b.priceSold - a.priceSold;
+      }
     });
-  }, [items, search, activeCat, statusFilter, receiptFilter]);
+  }, [items, search, activeCat, statusFilter, receiptFilter, sortBy]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -428,6 +434,13 @@ export default function InventoryClient({ items: initial }: { items: InventoryIt
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s}>{s}</option>)}
           <option value="__no_price__">No Price Indicated</option>
+        </select>
+        <select className="filter-btn" value={sortBy} onChange={e => { setSortBy(e.target.value as typeof sortBy); setPage(1); }}
+          style={{ cursor: "pointer", background: "var(--surface)", color: "var(--text-2)" }}>
+          <option value="updated">Sort: Recently Updated</option>
+          <option value="date">Sort: Date</option>
+          <option value="name">Sort: Name (A–Z)</option>
+          <option value="price">Sort: Price (High–Low)</option>
         </select>
       </div>
 
