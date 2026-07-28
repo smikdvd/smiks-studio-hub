@@ -32,8 +32,8 @@ function fmtDate(s: string | null) {
 }
 
 function fmtMoney(v: number) {
-  if (!v) return "$0.00";
-  return "$" + Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!v) return "USh 0";
+  return "USh " + Number(v).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function StatusChip({ status }: { status: string }) {
@@ -110,7 +110,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
       </div>
 
       {/* KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div className="g3" style={{ marginBottom: "1.5rem" }}>
         <div className="kpi-card accent2">
           <div className="kpi-label">Total Sessions</div>
           <div className="kpi-value">{sessions.length}</div>
@@ -119,7 +119,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
           <div className="kpi-label">Total Revenue</div>
           <div className="kpi-value">{fmtMoney(totalRevenue)}</div>
         </div>
-        <div className="kpi-card accent6">
+        <div className="kpi-card accent4">
           <div className="kpi-label">Pending Payments</div>
           <div className="kpi-value">{pendingCount}</div>
         </div>
@@ -131,7 +131,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
           No sessions yet. Add your first booking!
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+        <div className="g3">
           {sessions.map(s => (
             <div key={s.id} onClick={() => openEdit(s)} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.2rem", cursor: "pointer", transition: "all 0.2s", boxShadow: "var(--shadow-sm)" }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--gold)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
@@ -139,7 +139,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
               <div style={{ fontSize: "0.6rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 6 }}>{s.type}</div>
               <div style={{ fontSize: "0.95rem", fontWeight: 800, marginBottom: 4, color: "var(--cream)", textTransform: "uppercase" }}>{s.client}</div>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.67rem", color: "var(--text-muted)", fontWeight: 500 }}>
-                {fmtDate(s.date)} · {s.hours}hrs @ ${s.rate}/hr
+                {fmtDate(s.date)} · {s.hours}hrs @ USh {Number(s.rate).toLocaleString()}/hr
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
                 <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "1.15rem", fontWeight: 700, color: "#34d399" }}>{fmtMoney(s.netRevenue)}</div>
@@ -159,7 +159,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
               <button onClick={() => setModal(null)} style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", color: "var(--text-muted)", cursor: "pointer", padding: "6px 10px", borderRadius: 7 }}>✕</button>
             </div>
             <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
                   <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Client Name</span>
                   <input className="input" value={form.client} onChange={f("client")} />
@@ -171,7 +171,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
                   </select>
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
                   <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Date</span>
                   <input className="input" type="date" value={form.date} onChange={f("date")} />
@@ -181,7 +181,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
                   <input className="input" type="number" step="0.5" value={form.hours} onChange={f("hours")} />
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
                   <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Rate/Hr ($)</span>
                   <input className="input" type="number" step="0.01" value={form.rate} onChange={f("rate")} />
@@ -191,7 +191,7 @@ export default function SessionsClient({ sessions: initial }: { sessions: Studio
                   <input className="input" type="number" step="0.01" value={form.discount} onChange={f("discount")} />
                 </label>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.9rem" }}>
                 <label style={{ display: "block" }}>
                   <span style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", display: "block", marginBottom: 6 }}>Net Revenue ($)</span>
                   <input className="input" type="number" step="0.01" value={form.netRevenue} onChange={f("netRevenue")} />

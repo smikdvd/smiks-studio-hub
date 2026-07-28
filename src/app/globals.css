@@ -258,6 +258,318 @@ select.input option { background: var(--navy-800); color: var(--cream); }
 .filter-btn:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-muted); }
 .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy-900); }
 
+/* ── CHART CARDS ── */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+.chart-title {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 1.1rem; padding-left: 10px; position: relative;
+}
+.chart-title::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 14px; background: var(--gold); border-radius: 2px;
+}
+
+/* ── CATEGORY BARS ── */
+.cat-bar-wrap { display: flex; flex-direction: column; gap: 9px; }
+.cat-row { display: flex; align-items: center; gap: 10px; }
+.cat-name {
+  width: 140px; font-size: 0.7rem; font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;
+}
+.cat-bar-bg {
+  flex: 1; height: 8px; background: rgba(245,234,214,0.07);
+  border-radius: 4px; overflow: hidden;
+}
+.cat-bar-fill {
+  height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(.22,1,.36,1);
+  min-width: 4px;
+}
+.cat-count {
+  width: 28px; text-align: right; font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem; font-weight: 700; color: var(--text-2); flex-shrink: 0;
+}
+
+/* ── DONUT CHART ── */
+.donut-wrap { display: flex; align-items: center; gap: 1.5rem; }
+.donut-legend { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.7rem; color: var(--text-2); font-weight: 500;
+}
+.legend-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* ── TIMELINE BARS ── */
+.timeline-bars {
+  display: flex; align-items: flex-end; gap: 6px; height: 110px;
+}
+.t-bar-wrap {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 4px; height: 100%;
+}
+.t-bar {
+  width: 100%; background: var(--gold-muted); border-radius: 3px 3px 0 0;
+  cursor: pointer; transition: background 0.2s; min-height: 4px;
+  border: 1px solid rgba(212,168,67,0.25);
+}
+.t-bar:hover { background: var(--gold); }
+.t-label {
+  font-size: 0.55rem; color: var(--text-muted); font-weight: 600;
+  letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+}
+
+/* ── RECENT ITEMS ── */
+.recent-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.recent-item:last-child { border-bottom: none; }
+
+/* ── RESPONSIVE GRID UTILITIES ── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.g5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; }
+
+/* ── TABLE SCROLL ── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll::-webkit-scrollbar { height: 5px; }
+.table-scroll::-webkit-scrollbar-track { background: var(--navy-800); }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+/* ── MOBILE NAV ── */
+.nav-mobile-toggle {
+  display: none; background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 8px 10px; cursor: pointer; color: var(--cream);
+  flex-direction: column; gap: 4px; align-items: center; justify-content: center;
+}
+.nav-mobile-toggle span {
+  display: block; width: 18px; height: 2px;
+  background: var(--cream); border-radius: 1px; transition: all 0.2s;
+}
+.nav-drawer {
+  display: none; position: fixed; inset: 64px 0 0 0;
+  background: var(--navy-900); border-top: 1px solid var(--border-strong);
+  z-index: 99; padding: 1rem; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+.nav-drawer.open { display: flex; }
+
+/* ── BREAKPOINTS ── */
+@media (max-width: 960px) {
+  .g5 { grid-template-columns: repeat(3, 1fr); }
+  .g4 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr; }
+  .kpi-grid-4 { grid-template-columns: 1fr 1fr !important; }
+}
+
 @media (max-width: 768px) {
   .kpi-grid-4 { grid-template-columns: 1fr 1fr !important; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr; }
+  .g5 { grid-template-columns: 1fr 1fr; }
+
+  /* Nav: hide desktop links, show hamburger */
+  .nav-desktop { display: none !important; }
+  .nav-mobile-toggle { display: flex !important; }
+
+  /* Stack chart grids */
+  .chart-grid { grid-template-columns: 1fr !important; }
+
+  /* Modal full-screen on mobile */
+  .modal { width: 95vw !important; max-height: 85vh !important; }
+
+  /* Section title smaller */
+  .section-title { font-size: 1.1rem !important; }
+
+  /* Main padding smaller */
+  main { padding: 1rem !important; }
+
+  /* Report canvas */
+  canvas { max-width: 100%; }
+
+  /* Donut stack on mobile */
+  .donut-wrap { flex-direction: column; align-items: center; }
+}
+
+@media (max-width: 480px) {
+  .g2 { grid-template-columns: 1fr; }
+  .g3 { grid-template-columns: 1fr; }
+  .form-g2 { grid-template-columns: 1fr !important; }
+
+  .kpi-value { font-size: 1.6rem !important; }
+
+  header { padding: 0 1rem !important; }
+}
+
+/* ── PRINT STYLES ── */
+@media print {
+  @page { size: A4; margin: 15mm 12mm; }
+
+  /* Hide everything that shouldn't print */
+  header, .no-print, button.no-print { display: none !important; }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-family: 'Montserrat', sans-serif;
+    background-image: none !important;
+  }
+  body::after { display: none !important; }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Print header injected by JS */
+  .print-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #b8902a;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  .print-header-title {
+    font-size: 1.2rem; font-weight: 900; color: #0d1b2e;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .print-header-sub {
+    font-size: 0.65rem; color: #555; margin-top: 2px; font-weight: 500;
+  }
+  .print-header-logo {
+    font-size: 0.7rem; color: #888; text-align: right;
+  }
+
+  /* Cards */
+  .kpi-card, .chart-card {
+    background: #f9f7f3 !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  .kpi-card::before { display: none !important; }
+  .kpi-label { color: #666 !important; }
+  .kpi-value { color: #0d1b2e !important; }
+  .kpi-sub   { color: #888 !important; }
+  .chart-title { color: #b8902a !important; }
+  .chart-title::before { background: #b8902a !important; }
+
+  /* Tables */
+  table { border-collapse: collapse !important; width: 100%; }
+  th { background: #f0ead6 !important; color: #555 !important; }
+  td, th { border-bottom: 1px solid #e0d8c8 !important; color: #222 !important; }
+
+  /* Bars */
+  .cat-bar-bg { background: #e8e4da !important; }
+  .cat-name   { color: #333 !important; }
+  .cat-count  { color: #444 !important; }
+
+  /* Grid adjustments for A4 */
+  .kpi-grid-4 { grid-template-columns: repeat(5, 1fr) !important; gap: 6px !important; }
+
+  /* Force page breaks */
+  .print-break { page-break-before: always; }
+
+  /* Period buttons — hide */
+  .print-hide { display: none !important; }
+
+  /* ── Invoice print view ── */
+  /* When printing, hide everything except the invoice */
+  body > * { display: none !important; }
+  .print-invoice-view { display: block !important; position: static !important; }
+
+  .print-page {
+    max-width: 100%;
+    font-family: 'Montserrat', sans-serif;
+    color: #111;
+    padding: 0;
+  }
+  .print-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+  .print-brand {
+    font-size: 1.4rem; font-weight: 900; color: #0d1b2e;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .print-brand-sub {
+    font-size: 0.7rem; color: #888; margin-top: 2px;
+  }
+  .print-doc-type {
+    font-size: 1.6rem; font-weight: 900; color: #b8902a;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .print-doc-number {
+    font-size: 0.85rem; font-weight: 700; color: #333; margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .print-meta-text {
+    font-size: 0.72rem; color: #666; margin-top: 3px;
+  }
+  .print-status-chip {
+    display: inline-block; margin-top: 6px;
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 3px 10px; border-radius: 5px;
+  }
+  .print-status-draft  { background: #f0f0f0; color: #666; }
+  .print-status-sent   { background: #e0eeff; color: #2563eb; }
+  .print-status-paid   { background: #d1fae5; color: #065f46; }
+
+  .print-divider { border: none; border-top: 2px solid #b8902a; margin: 16px 0; }
+
+  .print-bill-to { margin-bottom: 20px; }
+  .print-section-label {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.12em; color: #b8902a; margin-bottom: 5px;
+  }
+  .print-client-name { font-size: 1rem; font-weight: 800; color: #111; }
+
+  .print-table {
+    width: 100%; border-collapse: collapse; margin-bottom: 16px;
+    font-size: 0.8rem;
+  }
+  .print-th {
+    background: #f0ead6; color: #555; font-size: 0.62rem;
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 8px 10px; border-bottom: 2px solid #e0d8c8;
+  }
+  .print-th-desc { text-align: left; }
+  .print-th-num  { text-align: right; width: 110px; }
+  .print-td { padding: 8px 10px; border-bottom: 1px solid #ece8df; color: #222; }
+  .print-td-num  { text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+
+  .print-totals {
+    margin-left: auto; width: 280px; margin-bottom: 20px;
+  }
+  .print-total-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem; padding: 5px 0; color: #444;
+    border-bottom: 1px solid #ece8df;
+  }
+  .print-total-grand {
+    font-size: 1rem; font-weight: 900; color: #0d1b2e;
+    border-bottom: 2px solid #b8902a; padding-top: 8px;
+  }
+
+  .print-notes { margin-top: 20px; }
+  .print-notes-text { font-size: 0.78rem; color: #555; margin-top: 4px; line-height: 1.5; }
+
+  .print-footer {
+    margin-top: 32px; text-align: center; font-size: 0.72rem;
+    color: #b8902a; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    border-top: 1px solid #e0d8c8; padding-top: 14px;
+  }
 }

@@ -23,12 +23,11 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # environment files — NEVER commit these
+# Broad pattern so new variants (.env.migration, .env.staging, …) are covered by default
 .env
-.env.local
-.env.development
-.env.production
-.env.test
+.env.*
 # .env.example is safe to commit (it has no real secrets)
+!.env.example
 
 # database files
 *.db
@@ -50,3 +49,5 @@ next-env.d.ts
 
 # prisma generated client
 /src/generated/prisma
+
+.vercel

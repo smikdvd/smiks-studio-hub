@@ -54,7 +54,7 @@ export default function DealsClient({ deals, customers }: { deals: Deal[]; custo
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card" style={{ marginBottom: "1.5rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.9rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.9rem" }}>
             <input className="input" placeholder="Deal Title" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} required />
             <input className="input" placeholder="Value" type="number" value={formData.value} onChange={e => setFormData({ ...formData, value: e.target.value })} required />
             <select className="input" value={formData.customerId} onChange={e => setFormData({ ...formData, customerId: e.target.value })} required>
@@ -66,7 +66,7 @@ export default function DealsClient({ deals, customers }: { deals: Deal[]; custo
         </form>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
+      <div className="g3">
         {deals.map(deal => {
           const sc = STAGE_COLORS[deal.stage] || "#94a3b8";
           return (
@@ -76,7 +76,7 @@ export default function DealsClient({ deals, customers }: { deals: Deal[]; custo
                 <button onClick={() => handleDelete(deal.id)} className="btn btn-danger" style={{ padding: "4px 10px", fontSize: "0.65rem" }}>Delete</button>
               </div>
               <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "1.4rem", fontWeight: 700, color: "var(--gold-light)", marginBottom: 6 }}>
-                ${deal.value.toLocaleString()}
+                USh {deal.value.toLocaleString()}
               </div>
               {deal.customer && <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: 8 }}>{deal.customer.name}</div>}
               <span className="chip" style={{ background: sc + "18", color: sc, borderColor: sc + "40" }}>{deal.stage}</span>
